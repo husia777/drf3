@@ -1,5 +1,30 @@
+from datetime import date
+
+from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+
+
+def emailvalidator(value: str):
+    if 'rambler.ru' in value:
+        raise ValidationError("Запрещена регистрация с почтового адреса в домене rambler.ru")
+
+
+def minlenvalueslug(value: str):
+    if len(value) < 5:
+        raise ValidationError('Значение длины слага не может быть меньше 5')
+
+
+def name_validator(value: str):
+    if len(value) < 10:
+        raise ValidationError('Минимальная длина имени должна быть не меньше 10 символам')
+
+
+def is_published_validator(value: bool):
+    if value:
+        raise ValidationError(
+            'Значение поля is_published на момент создания не должно равняться True, по умолчанию стоит False')
 
 
 class Locations(models.Model):
@@ -17,6 +42,7 @@ class Locations(models.Model):
 
 class Category(models.Model):
     name = models.TextField()
+    slug = models.CharField(null=True, max_length=10, unique=True, validators=[minlenvalueslug])
 
     class Meta:
         verbose_name = 'Категория'
@@ -35,6 +61,8 @@ class Users(AbstractUser):
     age = models.IntegerField()
     location = models.ManyToManyField('Locations')
     last_name = models.CharField(max_length=100, blank=True)
+    birth_date = models.DateField(null=True)
+    email = models.EmailField(null=True, blank=True, unique=True, validators=[emailvalidator])
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -46,11 +74,11 @@ class Users(AbstractUser):
 
 
 class Ads(models.Model):
-    name = models.TextField()
+    name = models.CharField(max_length=100, null=False, blank=False, validators=[name_validator])
     author = models.ForeignKey('Users', on_delete=models.CASCADE)
-    price = models.IntegerField()
-    description = models.TextField()
-    is_published = models.BooleanField(default=False)
+    price = models.IntegerField(validators=[MinValueValidator(0)])
+    description = models.TextField(null=True, blank=True)
+    is_published = models.BooleanField(default=False, validators=[is_published_validator])
     logo = models.ImageField(upload_to='logos/')
     category = models.ForeignKey('Category', on_delete=models.CASCADE)
 
@@ -58,8 +86,8 @@ class Ads(models.Model):
         verbose_name = 'Объявление'
         verbose_name_plural = 'Объявления'
 
-    def __str__(self):
-        return self.name
+        def __str__(self):
+            return self.name
 
 
 class Compilation(models.Model):

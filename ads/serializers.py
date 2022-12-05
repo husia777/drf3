@@ -1,61 +1,20 @@
+from datetime import date
+
 from rest_framework import serializers
 
 from ads.models import Users, Locations, Ads, Compilation, Category
 
 
-class AdsUpdateSerializer(serializers.ModelSerializer):
-    author = serializers.SlugRelatedField(
-        required=False,
-        many=False,
-        queryset=Users.objects.all(),
-        slug_field='username',
-    )
-    category = serializers.SlugRelatedField(
-        required=False,
-        many=False,
-        queryset=Category.objects.all(),
-        slug_field='name',
-    )
+class BirthDateValidator:
+    date_today = date.today()
 
-    class Meta:
-        model = Ads
-        exclude = ['id']
+    def __init__(self, min_age):
+        self.min_age = min_age[0]
 
-    def update(self, instance, validated_data):
-        instance.name = validated_data.get('name', instance.name)
-        instance.author = validated_data.get('author', instance.author)
-        instance.price = validated_data.get('price', instance.price)
-        instance.description = validated_data.get('description', instance.description)
-        instance.is_published = validated_data.get('is_published', instance.is_published)
-        instance.logo = validated_data.get('logo', instance.logo)
-        instance.category = validated_data.get('category', instance.category)
-        instance.save()
-        return instance
-
-
-class AdsDeDestroySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Ads
-        fields = ['id']
-
-
-class AdsDetailSerializer(serializers.ModelSerializer):
-    author = serializers.SlugRelatedField(
-        required=False,
-        many=False,
-        queryset=Users.objects.all(),
-        slug_field='username',
-    )
-    category = serializers.SlugRelatedField(
-        required=False,
-        many=False,
-        queryset=Category.objects.all(),
-        slug_field='name',
-    )
-
-    class Meta:
-        model = Ads
-        fields = '__all__'
+    def __call__(self, value):
+        if int(str(self.date_today - value).split()[0]) < self.min_age * 364:
+            raise serializers.ValidationError(
+                f'Минимальный возраст пользователя не должна быть меньше {self.min_age[0]} годам')
 
 
 class LocationSerializer(serializers.ModelSerializer):
@@ -92,6 +51,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
+    birth_date = serializers.DateField(validators=[BirthDateValidator([9])])
     location = serializers.SlugRelatedField(
         required=False,
         many=True,
@@ -118,14 +78,15 @@ class UserCreateSerializer(serializers.ModelSerializer):
             last_name=validated_data['last_name'],
             username=validated_data['username'],
             role=validated_data['role'],
-            age=validated_data['age']
+            age=validated_data['age'],
+            email=validated_data['email'],
+            birth_date=validated_data['birth_date']
         )
         user.set_password(validated_data["password"])
         user.save()
         for location in self._locations:
             user_loc, _ = Locations.objects.get_or_create(name=location)
             user.location.add(user_loc)
-            user.save()
         user.save()
         return user
 
@@ -169,20 +130,6 @@ class UserDestroySerializer(serializers.ModelSerializer):
 
 class CompilationListSerializer(serializers.ModelSerializer):
     items = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-
-    class Meta:
-        model = Compilation
-        fields = "__all__"
-
-
-class ItemsSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Ads
-        fields = "__all__"
-
-
-class CompilationDetailSerializer(serializers.ModelSerializer):
-    items = AdsDetailSerializer(many=True)
 
     class Meta:
         model = Compilation
@@ -236,3 +183,145 @@ class CompilationDestroySerializer(serializers.ModelSerializer):
     class Meta:
         model = Users
         fields = ["id"]
+
+
+class CategoryListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        exclude = ['id']
+
+
+class CategoryDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = '__all__'
+
+
+class CategoryCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        exclude = ['id']
+
+
+class CategoryUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        exclude = ['id']
+
+
+class CategoryDestroySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id']
+
+
+class AdsListSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        required=False,
+        many=False,
+        queryset=Users.objects.all(),
+        slug_field='first_name',
+    )
+    category = serializers.SlugRelatedField(
+        required=False,
+        many=False,
+        queryset=Category.objects.all(),
+        slug_field='name',
+    )
+
+    class Meta:
+        model = Ads
+        exclude = ['logo']
+
+
+class AdsDetailSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        required=False,
+        many=False,
+        queryset=Users.objects.all(),
+        slug_field='first_name',
+    )
+    category = serializers.SlugRelatedField(
+        required=False,
+        many=False,
+        queryset=Category.objects.all(),
+        slug_field='name',
+    )
+
+    class Meta:
+        model = Ads
+        exclude = ['logo']
+
+
+class AdsCreateSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        required=False,
+        many=False,
+        queryset=Users.objects.all(),
+        slug_field='first_name',
+    )
+    category = serializers.SlugRelatedField(
+        required=False,
+        many=False,
+        queryset=Category.objects.all(),
+        slug_field='name',
+    )
+
+    class Meta:
+        model = Ads
+        exclude = ['id', 'logo']
+
+
+    def create(self, validated_data):
+        ads = Ads(
+        name=validated_data['name'],
+        price = validated_data['price'],
+        author = validated_data["author"],
+        description = validated_data['description'],
+        is_published = validated_data['is_published'],
+        category = validated_data['category'] )
+        ads.save()
+        return ads
+
+class AdsUpdateSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        required=False,
+        many=False,
+        queryset=Users.objects.all(),
+        slug_field='first_name',
+    )
+    category = serializers.SlugRelatedField(
+        required=False,
+        many=False,
+        queryset=Category.objects.all(),
+        slug_field='name',
+    )
+
+    class Meta:
+        model = Ads
+        exclude = ['id']
+
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get('name', instance.name)
+        instance.author = validated_data.get('author', instance.author)
+        instance.price = validated_data.get('price', instance.price)
+        instance.description = validated_data.get('description', instance.description)
+        instance.is_published = validated_data.get('is_published', instance.is_published)
+        instance.logo = validated_data.get('logo', instance.logo)
+        instance.category = validated_data.get('category', instance.category)
+        instance.save()
+        return instance
+
+
+class AdsDestroySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id']
+
+
+class CompilationDetailSerializer(serializers.ModelSerializer):
+    items = AdsDetailSerializer(many=True)
+
+    class Meta:
+        model = Compilation
+        fields = "__all__"

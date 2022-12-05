@@ -21,7 +21,8 @@ http://127.0.0.1:8000/user/create/
 "password":"3",
 "location":["1", "2", "3"],
 "role":"user",
-"age":"22"
+"age":"22",
+"email":"123@rambler.ru" вызовет ошибку !
 }
 }<h4> проверка обновления и создания юзера</h4>
 
@@ -68,4 +69,21 @@ http://127.0.0.1:8000/compilation/create/
     "name":"обновленная подборка",
     "owner":"19",
     "items":[1,2,3]
+}
+для создания категории
+http://127.0.0.1:8000/cat/create/
+{   
+    "name":"1",
+    "slug":"12345" 
+}
+для создания объявления 
+http://127.0.0.1:8000/ad/create/
+
+{
+    "name" : "ерывеарарарапр",
+    "author" : "Петр",
+    "price" : "9",
+    "description" :"",
+    "category" : "Растения",
+    "is_published":"False"
 }

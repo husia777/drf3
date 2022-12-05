@@ -19,7 +19,9 @@ from ads.permissions import PermissionsForCompilation, PermissionsForAds
 from ads.serializers import UserCreateSerializer, LocationSerializer, UserListSerializer, UserDetailSerializer, \
     UserUpdateSerializer, UserDestroySerializer, CompilationListSerializer, CompilationDetailSerializer, \
     CompilationCreateSerializer, AdsDetailSerializer, CompilationDestroySerializer, CompilationUpdateSerializers, \
-    AdsDeDestroySerializer, AdsUpdateSerializer
+    AdsDestroySerializer, AdsUpdateSerializer, CategoryListSerializer, CategoryDetailSerializer, \
+    CategoryCreateSerializer, CategoryUpdateSerializer, CategoryDestroySerializer, AdsListSerializer, \
+    AdsCreateSerializer
 
 
 class LocAPIListPagination(PageNumberPagination):
@@ -33,46 +35,35 @@ class Index(View):
         return JsonResponse({'status': 'ok'}, status=200)
 
 
+class AdsView(ListAPIView):
+    queryset = Ads.objects.all()
+    serializer_class = AdsListSerializer
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 class AdsView(ListView):
     model = Ads
 
-    def get(self, request, *args, **kwargs):
-        ad_list = Ads.objects.all()
-        ad_list = ad_list.select_related('category', 'author').order_by('-price')
-
-        num_id = request.GET.get('cat', None)
-        if num_id:
-            ad_list = ad_list.filter(category__id__exact=num_id)
-
-        ad_text = request.GET.get('text', None)
-        if ad_text:
-            ad_list = ad_list.filter(name__icontains=ad_text)
-
-        name_loc = request.GET.get('location', None)
-        if name_loc:
-            ad_list = ad_list.filter(author__location__name__icontains=name_loc)
-
-        price_from = request.GET.get('price_from', None)
-        price_to = request.GET.get('price_to', None)
-        if price_from and price_to:
-            ad_list = ad_list.filter(price__range=(int(price_from), int(price_to)))
-
-
-        list_data = []
-        for dt in ad_list:
-            list_data.append({
-                'Id': dt.id,
-                'name': dt.name,
-                'author_id': dt.author_id,
-                'author': dt.author.first_name,
-                'price': dt.price,
-                'description': dt.description,
-                'is_published': dt.is_published,
-                'logo': dt.logo.url if dt.logo else None,
-                'category': dt.category.name
-            })
-        return JsonResponse(list_data, safe=False)
+    # def get(self, request, *args, **kwargs):
+    #     ad_list = Ads.objects.all()
+    #     ad_list = ad_list.select_related('category', 'author').order_by('-price')
+    #
+    #     num_id = request.GET.get('cat', None)
+    #     if num_id:
+    #         ad_list = ad_list.filter(category__id__exact=num_id)
+    #
+    #     ad_text = request.GET.get('text', None)
+    #     if ad_text:
+    #         ad_list = ad_list.filter(name__icontains=ad_text)
+    #
+    #     name_loc = request.GET.get('location', None)
+    #     if name_loc:
+    #         ad_list = ad_list.filter(author__location__name__icontains=name_loc)
+    #
+    #     price_from = request.GET.get('price_from', None)
+    #     price_to = request.GET.get('price_to', None)
+    #     if price_from and price_to:
+    #         ad_list = ad_list.filter(price__range=(int(price_from), int(price_to)))
 
 
 class AdsDetailView(RetrieveAPIView):
@@ -82,33 +73,9 @@ class AdsDetailView(RetrieveAPIView):
     authentication_classes = [JWTAuthentication]
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class AdsCreateView(CreateView):
-    model = Ads
-    fields = ['name', 'author', 'price', 'description', 'is_published']
-
-    def post(self, request, *args, **kwargs):
-        data = json.loads(request.body)
-        try:
-            category = Category.objects.get(pk=data['category_id'])
-        except  Category.DoesNotExist as error:
-            return JsonResponse({"ERROR": f"{error}"})
-        try:
-            author = Users.objects.get(first_name=data['author'])
-        except  Category.DoesNotExist as error:
-            return JsonResponse({"ERROR": f"{error}"})
-
-        ad = Ads.objects.create(
-            name=data['name'],
-            author=author,
-            price=data['price'],
-            description=data['description'],
-            is_published=data['is_published'],
-            logo=data['logo'],
-            category=category
-        )
-
-        return JsonResponse({'res': 'ok'}, status=200)
+class AdsCreateView(CreateAPIView):
+    queryset = Ads.objects.all()
+    serializer_class = AdsCreateSerializer
 
 
 class AdsUpdateView(UpdateAPIView):
@@ -120,7 +87,7 @@ class AdsUpdateView(UpdateAPIView):
 
 class AdsDeleteView(DestroyAPIView):
     queryset = Ads.objects.all()
-    serializer_class = AdsDeDestroySerializer
+    serializer_class = AdsDestroySerializer
     permission_classes = [IsAuthenticated, PermissionsForAds]
     authentication_classes = [JWTAuthentication]
 
@@ -145,75 +112,29 @@ class AdsAddImage(UpdateView):
         })
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class CategoryView(ListView):
-    model = Category
-
-    def get(self, request, *args, **kwargs):
-        super().get(request, *args, **kwargs)
-        self.object_list = self.object_list.order_by('name')
-        list_data = []
-        for dt in self.object_list:
-            list_data.append({
-                'id': dt.id,
-                'name': dt.name
-            })
-        return JsonResponse(list_data, safe=False)
+class CategoryView(ListAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategoryListSerializer
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class CategoryDetailView(DetailView):
-    model = Category
-
-    def get(self, request, *args, **kwargs):
-        try:
-            caregory = self.get_object()
-            return JsonResponse({
-                'Id': caregory.id,
-                'name': caregory.name})
-        except:
-            return JsonResponse({'error': 'not found'}, status=404)
+class CategoryDetailView(RetrieveAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategoryDetailSerializer
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class CategoryCreateView(CreateView):
-    model = Category
-    fields = ['name']
-
-    def post(self, request, *args, **kwargs):
-        data = json.loads(request.body)
-        category = Category.objects.create(
-            name=data['name'],
-        )
-        category.save()
-        return JsonResponse({'res': 'ok'}, status=200)
+class CategoryCreateView(CreateAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategoryCreateSerializer
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class CategoryUpdateView(UpdateView):
-    model = Category
-    fields = ['name']
-
-    def patch(self, request, *args, **kwargs):
-        super().post(request, *args, **kwargs)
-        data = json.loads(request.body)
-        self.object.name = data['name']
-        self.object.save()
-
-        return JsonResponse({
-            'id': self.object.id,
-            'name': self.object.name,
-        }, status=200)
+class CategoryUpdateView(UpdateAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategoryUpdateSerializer
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class CategoryDeleteView(DeleteView):
-    model = Category
-    success_url = 'cat'
-
-    def delete(self, request, *args, **kwargs):
-        super().delete(request, *args, **kwargs)
-        return JsonResponse({'status': 'ok'}, status=200)
+class CategoryDeleteView(DestroyAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategoryDestroySerializer
 
 
 class UsersView(ListAPIView):
