@@ -78,8 +78,8 @@ class Ads(models.Model):
     author = models.ForeignKey('Users', on_delete=models.CASCADE)
     price = models.IntegerField(validators=[MinValueValidator(0)])
     description = models.TextField(null=True, blank=True)
-    is_published = models.BooleanField(default=False, validators=[is_published_validator])
-    logo = models.ImageField(upload_to='logos/')
+    is_published = models.BooleanField(null=True,default=False, validators=[is_published_validator])
+    logo = models.ImageField(upload_to='logos/', null=True)
     category = models.ForeignKey('Category', on_delete=models.CASCADE)
 
     class Meta:

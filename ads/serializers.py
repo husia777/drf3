@@ -271,17 +271,17 @@ class AdsCreateSerializer(serializers.ModelSerializer):
         model = Ads
         exclude = ['id', 'logo']
 
-
     def create(self, validated_data):
         ads = Ads(
-        name=validated_data['name'],
-        price = validated_data['price'],
-        author = validated_data["author"],
-        description = validated_data['description'],
-        is_published = validated_data['is_published'],
-        category = validated_data['category'] )
+            name=validated_data['name'],
+            price=validated_data['price'],
+            author=validated_data["author"],
+            description=validated_data['description'],
+            is_published=validated_data['is_published'],
+            category=validated_data['category'])
         ads.save()
         return ads
+
 
 class AdsUpdateSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(

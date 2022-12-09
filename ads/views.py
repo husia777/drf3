@@ -39,11 +39,6 @@ class AdsView(ListAPIView):
     queryset = Ads.objects.all()
     serializer_class = AdsListSerializer
 
-
-@method_decorator(csrf_exempt, name='dispatch')
-class AdsView(ListView):
-    model = Ads
-
     # def get(self, request, *args, **kwargs):
     #     ad_list = Ads.objects.all()
     #     ad_list = ad_list.select_related('category', 'author').order_by('-price')
